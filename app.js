@@ -32,7 +32,10 @@
     { id: 16, name: 'Ruth Esther Castillo', initials: 'RC' },
     { id: 17, name: 'Sabrina Santana', initials: 'SS' },
     { id: 18, name: 'Sayira Meran Ramirez', initials: 'SM' },
-    { id: 19, name: 'Yisell Fernandez', initials: 'YF' }
+    { id: 19, name: 'Yisell Fernandez', initials: 'YF' },
+    { id: 20, name: 'Amaury Piña', initials: 'AP' },
+    { id: 21, name: 'Josmary Polanco', initials: 'JP' },
+    { id: 22, name: 'Jaime Calventi', initials: 'JC' }
   ];
 
   const OFFICIAL_COLORS = [
@@ -54,14 +57,17 @@
     { id: 'c16', name: 'Rosa Pastel', hex: '#FF8FA3', textDark: true },
     { id: 'c17', name: 'Terracota / Bronce', hex: '#C86D51', textDark: false },
     { id: 'c18', name: 'Plateado / Gris Perla', hex: '#94A3B8', textDark: true },
-    { id: 'c19', name: 'Blanco Nieve', hex: '#F8FAFC', textDark: true }
+    { id: 'c19', name: 'Blanco Nieve', hex: '#F8FAFC', textDark: true },
+    { id: 'c20', name: 'Celeste Cielo', hex: '#38BDF8', textDark: true },
+    { id: 'c21', name: 'Verde Menta', hex: '#10B981', textDark: true },
+    { id: 'c22', name: 'Cobre / Marrón Chocolate', hex: '#8B4513', textDark: false }
   ];
 
-  // 3 Official Groups (7, 6, 6 = 19 capacity)
+  // 3 Official Groups (8, 7, 7 = 22 capacity)
   const OFFICIAL_GROUPS = [
-    { id: 1, name: 'Grupo 1 - Estrellas de Belén', emblem: '⭐', capacity: 7 },
-    { id: 2, name: 'Grupo 2 - Trineo Real', emblem: '🛷', capacity: 6 },
-    { id: 3, name: 'Grupo 3 - Cascabeles de Oro', emblem: '🔔', capacity: 6 }
+    { id: 1, name: 'Grupo 1 - Estrellas de Belén', emblem: '⭐', capacity: 8 },
+    { id: 2, name: 'Grupo 2 - Trineo Real', emblem: '🛷', capacity: 7 },
+    { id: 3, name: 'Grupo 3 - Cascabeles de Oro', emblem: '🔔', capacity: 7 }
   ];
 
   // Pre-assigned ONLY for Jazmin and Ruth
@@ -524,9 +530,9 @@
     const descEl = document.getElementById('screen1StatusCount');
     if (descEl) {
       if (pendingCount === 0) {
-        descEl.innerHTML = `🎉 <strong>¡Todos los 19 compañeros ya tienen su color y grupo!</strong> Consulta tu nombre o revisa el tablero general.`;
+        descEl.innerHTML = `🎉 <strong>¡Todos los ${state.participants.length} compañeros ya tienen su color y grupo!</strong> Consulta tu nombre o revisa el tablero general.`;
       } else {
-        descEl.innerHTML = `<strong>${assignedCount} de 19</strong> compañeros ya descubrieron su color • <strong>${pendingCount}</strong> pendientes de participar.`;
+        descEl.innerHTML = `<strong>${assignedCount} de ${state.participants.length}</strong> compañeros ya descubrieron su color • <strong>${pendingCount}</strong> pendientes de participar.`;
       }
     }
   }
@@ -1255,7 +1261,7 @@
     ctx.fillStyle = '#94a3b8';
     ctx.font = '600 20px "Plus Jakarta Sans", sans-serif';
     ctx.fillText(
-      `19 Participantes • 3 Grupos Oficiales • Progreso: ${assignedCount} de ${totalCount} Asignados`,
+      `22 Participantes • 3 Grupos Oficiales (8, 7 y 7) • Progreso: ${assignedCount} de ${totalCount} Asignados`,
       width / 2,
       158
     );
@@ -1275,8 +1281,8 @@
     ctx.fillText(badgeText, width / 2, 199);
     ctx.restore();
 
-    const cardTop = 235;
-    const cardHeight = 920;
+    const cardTop = 230;
+    const cardHeight = 955;
     const colGap = 24;
     const startX = 50;
     const colWidth = (width - 100 - colGap * 2) / 3;
@@ -1513,7 +1519,7 @@
   function copySummaryTextToClipboard() {
     let msg = `🎄 *RESULTADOS - SORTEO DE NAVIDAD LEXGEO 2026* 🎅\n`;
     msg += `📅 *Fecha:* ${new Date().toLocaleDateString('es-DO', { dateStyle: 'long' })}\n`;
-    msg += `🏷️ *Modalidad:* 3 Grupos (dos de 6 y uno de 7 integrantes) • 19 Participantes\n\n`;
+    msg += `🏷️ *Modalidad:* 3 Grupos (dos de 7 y uno de 8 integrantes) • 22 Participantes\n\n`;
 
     state.groups.forEach((g) => {
       const assignedIds = Object.entries(state.assigned)
@@ -1605,7 +1611,7 @@
     const pendingList = state.participants.filter((p) => !state.assigned[p.id]);
 
     if (pendingList.length === 0) {
-      showToast('¡Todos los 19 participantes ya tienen color y grupo asignado!', 'info');
+      showToast('¡Todos los 22 participantes ya tienen color y grupo asignado!', 'info');
       return;
     }
 
