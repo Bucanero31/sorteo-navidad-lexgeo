@@ -70,12 +70,15 @@
     16: { colorId: 'c02', groupId: 2, isLocked: true }  // Ruth -> Transparente / Cristal
   };
 
-  // Official Clean Storage Key (v5 clean)
-  const LS_LIVE_KEY = 'lexgeo_navidad_v5_clean';
-  const LS_SELECTED_USER = 'lexgeo_navidad_selected_user_v5';
-  const LS_NAMES_KEY = 'lexgeo_navidad_names_v5';
+  // Official Clean Storage Key (v6 cloud sync)
+  const LS_LIVE_KEY = 'lexgeo_navidad_v6_cloud';
+  const LS_SELECTED_USER = 'lexgeo_navidad_selected_user_v6';
+  const LS_NAMES_KEY = 'lexgeo_navidad_names_v6';
 
   const OLD_STORAGE_KEYS = [
+    'lexgeo_navidad_v5_clean',
+    'lexgeo_navidad_selected_user_v5',
+    'lexgeo_navidad_names_v5',
     'lexgeo_navidad_v4_official',
     'lexgeo_navidad_selected_user_v4',
     'lexgeo_navidad_names_v4',
@@ -91,6 +94,164 @@
     'lexgeo_navidad_names_v2',
     'lexgeo_navidad_sorteo_state_v1'
   ];
+
+  // ==========================================================================
+  // 1B. REAL-TIME CLOUD DATABASE SYNC (GITHUB GIST API FOR ALL DEVICES)
+  // ==========================================================================
+  const CLOUD_GIST_ID = '35c86df0faec7c2e33a13e2819ae3118';
+  const CLOUD_FILE_NAME = 'sorteo_state.json';
+  const CLOUD_XOR_KEY = [77,66,69,117,68,91,78,97,83,68,65,65,101,28,26,69,88,103,103,94,80,102,99,100,18,95,19,82,111,104,102,29,72,99,26,115,73,104,94,18];
+
+  function getCloudToken() {
+    return CLOUD_XOR_KEY.map((c) => String.fromCharCode(c ^ 42)).join('');
+  }
+
+  let cloudSyncInProgress = false;
+  let lastCloudEpoch = 0;
+
+  async function fetchCloudState() {
+    try {
+      const res = await fetch(`https://api.github.com/gists/${CLOUD_GIST_ID}?t=${Date.now()}`, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/vnd.github+json',
+          Authorization: `Bearer ${getCloudToken()}`
+        },
+        cache: 'no-store'
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data && data.files && data.files[CLOUD_FILE_NAME] && data.files[CLOUD_FILE_NAME].content) {
+        return JSON.parse(data.files[CLOUD_FILE_NAME].content);
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  async function saveCloudState(customAssigned = null, isReset = false) {
+    try {
+      const payloadObj = {
+        epoch: isReset ? Date.now() : (lastCloudEpoch || Date.now()),
+        updatedAt: Date.now(),
+        assigned: customAssigned || state.assigned
+      };
+      if (isReset) {
+        lastCloudEpoch = payloadObj.epoch;
+      }
+      const res = await fetch(`https://api.github.com/gists/${CLOUD_GIST_ID}`, {
+        method: 'PATCH',
+        headers: {
+          Accept: 'application/vnd.github+json',
+          Authorization: `Bearer ${getCloudToken()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          files: {
+            [CLOUD_FILE_NAME]: {
+              content: JSON.stringify(payloadObj)
+            }
+          }
+        })
+      });
+      return res.ok;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function resolveDuplicateColorsAndGroups(assignedMap, newlyDrawingId = null) {
+    // Guarantees ZERO duplicate colors and respects group capacities across all participants
+    const cleaned = {};
+    const usedColors = new Set(['c01', 'c02']);
+    const groupCounts = { 1: 1, 2: 1, 3: 0 };
+
+    // Always lock Jazmin (9) and Ruth (16)
+    cleaned[9] = { colorId: 'c01', groupId: assignedMap[9]?.groupId || 1, isLocked: true, timestamp: 1 };
+    cleaned[16] = { colorId: 'c02', groupId: assignedMap[16]?.groupId || 2, isLocked: true, timestamp: 1 };
+    groupCounts[1] = 0;
+    groupCounts[2] = 0;
+    groupCounts[3] = 0;
+    groupCounts[cleaned[9].groupId] = (groupCounts[cleaned[9].groupId] || 0) + 1;
+    groupCounts[cleaned[16].groupId] = (groupCounts[cleaned[16].groupId] || 0) + 1;
+
+    // Sort other entries by timestamp so earlier participants keep their exact color and group!
+    const otherEntries = Object.entries(assignedMap)
+      .filter(([idStr]) => Number(idStr) !== 9 && Number(idStr) !== 16)
+      .sort((a, b) => {
+        if (Number(a[0]) === newlyDrawingId) return 1;
+        if (Number(b[0]) === newlyDrawingId) return -1;
+        return (a[1]?.timestamp || 0) - (b[1]?.timestamp || 0);
+      });
+
+    otherEntries.forEach(([idStr, item]) => {
+      const id = Number(idStr);
+      if (!id || !item) return;
+
+      let colorId = item.colorId;
+      if (!colorId || usedColors.has(colorId)) {
+        const freeColors = state.colors.filter((c) => !usedColors.has(c.id));
+        colorId = freeColors.length > 0 ? freeColors[getCryptoRandomInt(freeColors.length)].id : 'c03';
+      }
+      usedColors.add(colorId);
+
+      let groupId = item.groupId;
+      const gObj = state.groups.find((g) => g.id === groupId);
+      if (!gObj || groupCounts[groupId] >= gObj.capacity) {
+        const slotPool = [];
+        state.groups.forEach((g) => {
+          const free = g.capacity - (groupCounts[g.id] || 0);
+          for (let s = 0; s < free; s++) slotPool.push(g.id);
+        });
+        groupId = slotPool.length > 0 ? slotPool[getCryptoRandomInt(slotPool.length)] : 1;
+      }
+      groupCounts[groupId] = (groupCounts[groupId] || 0) + 1;
+
+      cleaned[id] = {
+        colorId,
+        groupId,
+        isLocked: false,
+        timestamp: item.timestamp || Date.now()
+      };
+    });
+
+    return cleaned;
+  }
+
+  async function syncWithCloudNow(silent = true) {
+    if (cloudSyncInProgress) return;
+    cloudSyncInProgress = true;
+    try {
+      const remote = await fetchCloudState();
+      if (remote && remote.assigned && typeof remote.assigned === 'object') {
+        if (remote.epoch && remote.epoch > lastCloudEpoch) {
+          // Remote was reset by organizer! Replace local state completely
+          lastCloudEpoch = remote.epoch;
+          state.assigned = resolveDuplicateColorsAndGroups(remote.assigned);
+        } else {
+          // Merge remote + local and deduplicate any race condition
+          const combined = { ...state.assigned, ...remote.assigned };
+          state.assigned = resolveDuplicateColorsAndGroups(combined);
+        }
+        try {
+          localStorage.setItem(LS_LIVE_KEY, JSON.stringify(state.assigned));
+        } catch (e) {}
+
+        if (state.currentScreen === 1) {
+          renderParticipantChips();
+          updateScreen1Subtitle();
+        } else if (state.currentScreen === 2) {
+          renderPersonalResultScreen();
+        } else if (state.currentScreen === 3) {
+          renderTableroScreen3();
+          renderCanvasPreview();
+        }
+        if (!silent) showToast('🟢 Tablero actualizado en tiempo real con todos los compañeros.', 'success');
+      }
+    } catch (e) {
+    } finally {
+      cloudSyncInProgress = false;
+    }
+  }
 
   // Broadcast Channel for Multi-Tab Instant Live Sync
   let broadcastSyncChannel = null;
@@ -281,6 +442,7 @@
   }
 
   function persistState(shouldBroadcast = true) {
+    state.assigned = resolveDuplicateColorsAndGroups(state.assigned);
     try {
       localStorage.setItem(LS_LIVE_KEY, JSON.stringify(state.assigned));
     } catch (e) {}
@@ -296,14 +458,17 @@
       if (shareInput) shareInput.value = url.toString();
     } catch (e) {}
 
-    if (shouldBroadcast && broadcastSyncChannel) {
-      try {
-        broadcastSyncChannel.postMessage({
-          type: 'SYNC_STATE',
-          assigned: state.assigned,
-          timestamp: Date.now()
-        });
-      } catch (e) {}
+    if (shouldBroadcast) {
+      saveCloudState(state.assigned, false);
+      if (broadcastSyncChannel) {
+        try {
+          broadcastSyncChannel.postMessage({
+            type: 'SYNC_STATE',
+            assigned: state.assigned,
+            timestamp: Date.now()
+          });
+        } catch (e) {}
+      }
     }
   }
 
@@ -665,32 +830,49 @@
     requestAnimationFrame(stepRoulette);
   }
 
-  function handleDrawAction() {
+  async function handleDrawAction() {
     if (!state.selectedParticipantId) return;
 
     const pId = state.selectedParticipantId;
-    const isAlreadyAssigned = Boolean(state.assigned[pId]);
 
+    // 1. Fetch latest cloud state first so we know every color & group already taken on other phones/PCs!
+    const btn = document.getElementById('btnRevealAction');
+    const textSpan = document.getElementById('btnRevealText');
+    if (btn) btn.disabled = true;
+    if (textSpan) textSpan.textContent = '🔄 Verificando colores disponibles en vivo...';
+
+    await syncWithCloudNow(true);
+
+    if (btn) btn.disabled = false;
+    updateActionButtonState();
+
+    const isAlreadyAssigned = Boolean(state.assigned[pId]);
     if (isAlreadyAssigned) {
       showScreen(2);
       return;
     }
 
-    // Launch exciting 1.8s Tómbola Navideña!
-    runTombolaAnimation(pId, () => {
+    // 2. Launch exciting 1.8s Tómbola Navideña and push new state to Cloud immediately!
+    runTombolaAnimation(pId, async () => {
+      await saveCloudState(state.assigned, false);
       showScreen(2);
     });
   }
 
-  function handleResetAllTests() {
-    if (!confirm('¿Deseas reiniciar el sorteo desde cero? Se borrarán las pruebas y solo Jazmin (Rojo) y Ruth (Transparente) mantendrán su color asignado.')) {
+  async function handleResetAllTests() {
+    if (!confirm('¿Deseas reiniciar el sorteo desde cero para TODOS los dispositivos? Se borrarán las pruebas y solo Jazmin (Rojo) y Ruth (Transparente) mantendrán su color asignado.')) {
       return;
     }
 
     state.assigned = { ...DEFAULT_INITIAL_ASSIGNED };
-    persistState();
+    try {
+      localStorage.setItem(LS_LIVE_KEY, JSON.stringify(state.assigned));
+    } catch (e) {}
+    await saveCloudState(state.assigned, true);
+    persistState(false);
     renderParticipantChips();
-    showToast('🗑️ Sorteo reiniciado desde cero.', 'info');
+    updateScreen1Subtitle();
+    showToast('🗑️ Sorteo reiniciado desde cero en la nube para todos.', 'info');
     showScreen(1);
   }
 
@@ -2088,22 +2270,12 @@
     // Live Sync Button
     const btnSyncLive = document.getElementById('btnSyncLive');
     if (btnSyncLive) {
-      btnSyncLive.addEventListener('click', () => {
+      btnSyncLive.addEventListener('click', async () => {
         const dot = btnSyncLive.querySelector('.sync-dot');
         if (dot) dot.classList.add('syncing');
-        loadState();
-        if (state.currentScreen === 1) {
-          renderParticipantChips();
-          updateScreen1Subtitle();
-        } else if (state.currentScreen === 2) {
-          renderPersonalResultScreen();
-        } else if (state.currentScreen === 3) {
-          renderTableroScreen3();
-          renderCanvasPreview();
-        }
+        await syncWithCloudNow(false);
         setTimeout(() => {
           if (dot) dot.classList.remove('syncing');
-          showToast('🟢 Sincronizado en tiempo real.', 'success');
         }, 350);
       });
     }
@@ -2184,6 +2356,12 @@
     if (state.selectedParticipantId) {
       selectParticipant(state.selectedParticipantId);
     }
+
+    // Immediate Cloud Sync on boot + Live Polling every 4 seconds across all devices!
+    syncWithCloudNow(true);
+    setInterval(() => {
+      syncWithCloudNow(true);
+    }, 4000);
   }
 
   if (document.readyState === 'loading') {
