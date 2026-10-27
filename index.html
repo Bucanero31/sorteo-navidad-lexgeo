@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎄 Sorteo Navideño Lexgeo - Colores y Grupos 2026</title>
+  <meta name="description" content="Sorteo oficial navideño de Lexgeo en tiempo real: asignación aleatoria de color único y 3 grupos para los 19 participantes.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Animated Snowfall Canvas -->
+  <canvas id="snowCanvas" class="snow-canvas" aria-hidden="true"></canvas>
+
+  <!-- Confetti Canvas -->
+  <canvas id="confettiCanvas" class="confetti-canvas" aria-hidden="true"></canvas>
+
+  <!-- Main App Wrapper -->
+  <div class="app-container">
+
+    <!-- GLOBAL HEADER (Festive, Compact) -->
+    <header class="main-header">
+      <!-- Animated Christmas Lights Garland (Pure CSS) -->
+      <div class="christmas-lights-wire" aria-hidden="true">
+        <ul class="christmas-lights">
+          <li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li>
+          <li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li>
+          <li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li>
+          <li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li>
+        </ul>
+      </div>
+
+      <div class="brand-badge">
+        <span class="brand-icon">⭐</span>
+        <span>Lexgeo • Sorteo Oficial de Navidad 2026</span>
+        <span class="brand-icon">🎄</span>
+      </div>
+
+      <h1 class="main-title">
+        Sorteo Navideño <span class="highlight-gold">Colores y Grupos</span>
+      </h1>
+
+      <p class="main-subtitle" id="globalSubtitle">
+        19 Participantes • 3 Grupos (dos de 6 y uno de 7 integrantes) • Colores Únicos para el intercambio
+      </p>
+
+      <!-- Quick Tools Bar -->
+      <div class="header-actions">
+        <button id="btnSyncLive" class="btn-tool active" title="Sincronizar sorteo en tiempo real">
+          <span class="sync-dot"></span>
+          <span>🔄</span>
+          <span id="syncStatusText">En Vivo</span>
+        </button>
+        <button id="btnToggleSnow" class="btn-tool active" title="Activar/Desactivar nieve">
+          <span>❄️</span>
+          <span id="snowStatusText">Nieve On</span>
+        </button>
+        <button id="btnToggleAudio" class="btn-tool active" title="Activar/Desactivar campanas festivas">
+          <span>🔔</span>
+          <span id="audioStatusText">Sonido On</span>
+        </button>
+        <button id="btnOpenOrganizer" class="btn-tool" title="Configuración de Henry">
+          <span>⚙️</span>
+          <span>Opciones de Henry</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ====================================================================
+         PANTALLA 1: PANTALLA INICIAL (BIENVENIDA Y SELECCIÓN)
+         ==================================================================== -->
+    <div id="screen1" class="screen-view active">
+      <section class="personal-reveal-section">
+        <div class="reveal-intro">
+          <div class="reveal-badge">🎁 Paso 1 de 2 • Consulta y Sorteo Personal</div>
+          <h2 class="reveal-title">¿Quién eres? Selecciona o escribe tu nombre:</h2>
+          <p class="reveal-desc" id="screen1StatusCount">
+            Cada compañero descubrirá su color único al entrar. Los colores y grupos se van llenando en tiempo real.
+          </p>
+        </div>
+
+        <div class="participant-picker-box">
+          <!-- Search input -->
+          <div class="picker-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input 
+              type="text" 
+              id="participantSearchInput" 
+              class="participant-search-input" 
+              placeholder="Escribe tu nombre para filtrar..." 
+              autocomplete="off"
+              spellcheck="false"
+            >
+          </div>
+
+          <!-- Quick Chips Grid (19 Participants) -->
+          <div id="participantQuickChips" class="quick-chips-container custom-scrollbar">
+            <!-- Dynamically populated chips with pending / assigned indicators -->
+          </div>
+
+          <!-- Helpful Selection / Double-Click Tip -->
+          <div class="selection-hint">
+            <span class="hint-icon">💡</span>
+            <span>Haz clic para elegir tu nombre, o <strong>doble clic</strong> sobre tu tarjeta para sortearlo de inmediato.</span>
+          </div>
+
+          <!-- Dynamic Action Button to Screen 2 -->
+          <button id="btnRevealAction" class="btn-reveal-action" disabled>
+            <span>🎁</span>
+            <span id="btnRevealText">Selecciona tu nombre arriba</span>
+            <span>✨</span>
+          </button>
+
+          <!-- Direct jump to Screen 3 -->
+          <div class="skip-reveal-link">
+            <button id="btnDirectToBoard">👀 O ver directamente el tablero general con todos los grupos →</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ====================================================================
+         PANTALLA 2: MI RESULTADO PERSONAL DEDICADO
+         ==================================================================== -->
+    <div id="screen2" class="screen-view" style="display: none;">
+      <!-- Top nav back to screen 1 -->
+      <div class="screen-top-nav">
+        <button id="btnBackToScreen1" class="btn-step-nav">
+          <span>←</span>
+          <span>Elegir otro participante</span>
+        </button>
+        <span class="step-indicator" id="screen2StepBadge">¡Tu Asignación Oficial Navideña! 🎉</span>
+      </div>
+
+      <!-- Centered Personal Result Card -->
+      <section class="personal-result-card screen2-card" role="region" aria-live="polite">
+        <div class="personal-card-header">
+          <div class="personal-card-title">
+            <span>🎉</span>
+            <span id="screen2CardTitle">¡Tu Asignación Oficial Navideña!</span>
+          </div>
+          <div id="personalLockTag" class="personal-lock-tag" style="display: none;">
+            <span>🔒</span>
+            <span>Color Fijo Oficial</span>
+          </div>
+        </div>
+
+        <div class="personal-card-content">
+          <div class="personal-avatar-wrap">
+            <img id="personalAvatarImg" class="personal-avatar-img" src="" alt="Avatar">
+            <div id="personalAvatarBadge" class="personal-avatar-badge">🎁</div>
+          </div>
+
+          <div class="personal-info">
+            <span class="personal-greeting">¡Te damos la bienvenida al Sorteo de Navidad Lexgeo! 🎄</span>
+            <h2 id="personalName" class="personal-name">Nombre Participante</h2>
+
+            <div class="personal-assignments-badges">
+              <!-- Color Pill -->
+              <div id="personalColorBadge" class="personal-badge-color">
+                <span class="color-dot-large" id="personalColorDot"></span>
+                <span id="personalColorText">Color Asignado</span>
+              </div>
+
+              <!-- Group Pill -->
+              <div id="personalGroupBadge" class="personal-badge-group">
+                <span id="personalGroupIcon">⭐</span>
+                <span id="personalGroupName">Grupo Asignado</span>
+              </div>
+            </div>
+
+            <p id="personalTeammatesHint" class="personal-teammates-box">
+              <!-- Teammates assigned so far in the same group -->
+            </p>
+          </div>
+        </div>
+
+        <!-- Copy personal text button -->
+        <div style="margin-top: 1.25rem; text-align: center;">
+          <button id="btnCopyMyAssignment" class="btn-tool-accent">
+            <span>📋</span>
+            <span>Copiar mi Asignación para pegarla en Teams</span>
+          </button>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="screen2-actions-bar">
+          <button id="btnGoToScreen3" class="btn-primary-gold btn-hero-next">
+            <span>👥</span>
+            <span>Ver Tablero de Grupos e Imagen para Teams →</span>
+          </button>
+          <button id="btnSwitchParticipant" class="btn-secondary">
+            <span>🔄</span>
+            <span>Consultar otro participante</span>
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ====================================================================
+         PANTALLA 3: TABLERO GENERAL (3 GRUPOS + LISTA + IMAGEN TEAMS)
+         ==================================================================== -->
+    <div id="screen3" class="screen-view" style="display: none;">
+      <!-- Screen 3 Header Navigation -->
+      <div class="screen3-nav-bar">
+        <div class="screen3-back-group">
+          <button id="btnBackToScreen2" class="btn-step-nav">
+            <span>←</span>
+            <span>Volver a mi resultado</span>
+          </button>
+          <button id="btnBackToHome" class="btn-step-nav">
+            <span>🏠</span>
+            <span>Inicio</span>
+          </button>
+        </div>
+
+        <div class="screen3-status-pills">
+          <div class="status-pill highlight" id="summaryProgressPill">
+            <span>🎄</span>
+            <span id="summaryProgressText">Cargando progreso...</span>
+          </div>
+          <div class="status-pill locked-info">
+            <span>🔒</span>
+            <span>Jazmin (Rojo) • Ruth (Transparente)</span>
+          </div>
+        </div>
+
+        <div class="screen3-quick-actions">
+          <button id="btnCopyTeamsLink" class="btn-primary-gold" title="Copiar link oficial sincronizado para Teams">
+            <span>🔗</span>
+            <span>Copiar Link Actualizado para Teams</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Section Tabs in Screen 3 -->
+      <div class="results-nav-bar" style="margin-top: 1.25rem;">
+        <div class="results-tabs" role="tablist">
+          <button id="tabBtnGroups" class="tab-btn active" role="tab" aria-selected="true">
+            <span>🎄</span>
+            <span>Vista por Grupos (3 Grupos)</span>
+          </button>
+          <button id="tabBtnTable" class="tab-btn" role="tab" aria-selected="false">
+            <span>📋</span>
+            <span>Lista de los 19 Participantes</span>
+          </button>
+          <button id="tabBtnCanvas" class="tab-btn" role="tab" aria-selected="false">
+            <span>📸</span>
+            <span>Imagen Oficial para Teams (HD)</span>
+          </button>
+        </div>
+
+        <div class="results-count-badge">
+          <span id="assignedCountLabel">2 / 19</span> Asignados • <span id="pendingCountLabel">17</span> Pendientes
+        </div>
+      </div>
+
+      <!-- TAB CONTENT 1: VISTA POR GRUPOS -->
+      <div id="viewGroupsContainer" class="tab-content-panel active">
+        <!-- 3 Groups Grid -->
+        <div class="groups-grid cols-3" id="groupsGridBox">
+          <!-- Dynamically rendered 3 Group Cards with filled and open slots -->
+        </div>
+
+        <!-- Pending participants card (Who hasn't drawn their turn yet) -->
+        <div class="pending-section-card" id="pendingSectionCard">
+          <div class="pending-header">
+            <div class="pending-title">
+              <span>⏳</span>
+              <span id="pendingSectionTitle">Compañeros pendientes por entrar (17)</span>
+            </div>
+            <span class="pending-badge">Esperando turno de sorteo</span>
+          </div>
+          <div class="pending-chips-box" id="pendingChipsBox">
+            <!-- Dynamically rendered chips of pending participants -->
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT 2: VISTA TABLA COMPLETA A-Z -->
+      <div id="viewTableContainer" class="tab-content-panel" style="display: none;">
+        <div class="table-view-box">
+          <div class="table-toolbar">
+            <input 
+              type="text" 
+              id="tableSearchInput" 
+              class="table-search-input" 
+              placeholder="🔍 Filtrar por nombre, grupo o color..."
+            >
+            <div class="table-sort-actions">
+              <span class="sort-label">Ordenar por:</span>
+              <button id="sortBtnName" class="btn-sort active" data-sort="name">Nombre A-Z</button>
+              <button id="sortBtnStatus" class="btn-sort" data-sort="status">Estado</button>
+              <button id="sortBtnGroup" class="btn-sort" data-sort="group">Grupo</button>
+              <button id="sortBtnColor" class="btn-sort" data-sort="color">Color</button>
+            </div>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table class="participants-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">#</th>
+                  <th>Participante</th>
+                  <th>Estado</th>
+                  <th>Grupo Asignado</th>
+                  <th>Color Único</th>
+                </tr>
+              </thead>
+              <tbody id="tableBodyContent">
+                <!-- Dynamically rendered rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT 3: IMAGEN HD PARA TEAMS -->
+      <div id="viewCanvasContainer" class="tab-content-panel" style="display: none;">
+        <div class="canvas-export-section">
+          <div class="canvas-export-header">
+            <h2 class="canvas-export-title">📸 Imagen Oficial para Microsoft Teams</h2>
+            <p class="canvas-export-desc">
+              Imagen en alta resolución (2x HD) con los 3 grupos y colores únicos asignados hasta el momento. Lista para descargar o copiar directamente en el chat grupal de Teams.
+            </p>
+          </div>
+
+          <div class="canvas-actions-bar">
+            <button id="btnDownloadCanvas" class="btn-export-action btn-download">
+              <span>💾</span>
+              <span>Descargar Imagen PNG (HD)</span>
+            </button>
+            <button id="btnCopyCanvas" class="btn-export-action btn-copy-img">
+              <span>📋</span>
+              <span>Copiar Imagen para Teams (Ctrl+V)</span>
+            </button>
+            <button id="btnCopySummaryText" class="btn-export-action btn-copy-txt">
+              <span>📝</span>
+              <span>Copiar Resumen en Texto</span>
+            </button>
+          </div>
+
+          <div class="canvas-preview-wrapper">
+            <canvas id="teamsCanvas" width="1600" height="1250"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="main-footer">
+      <div class="footer-title">Lexgeo Servicios Topográficos y Legales</div>
+      <div class="footer-sub">Sorteo Navideño 2026 • ¡Feliz Navidad y Próspero Año Nuevo! 🎅✨</div>
+    </footer>
+
+  </div>
+
+  <!-- MODAL: ORGANIZER SETTINGS (⚙️ HENRY) -->
+  <div id="organizerModal" class="modal-backdrop" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3 class="modal-title">⚙️ Opciones del Organizador (Henry)</h3>
+        <button id="btnCloseOrganizerModal" class="modal-close-btn">&times;</button>
+      </div>
+
+      <div class="modal-nav">
+        <button class="modal-nav-tab active" data-tab="tabAutoDraw">🎲 Completar y Reset</button>
+        <button class="modal-nav-tab" data-tab="tabParticipants">👥 Participantes</button>
+        <button class="modal-nav-tab" data-tab="tabColors">🎨 Paleta de Colores</button>
+        <button class="modal-nav-tab" data-tab="tabSync">☁️ Sincronización</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Tab 1: Auto Draw & Reset -->
+        <div id="tabAutoDraw" class="modal-tab-content active">
+          <div class="setting-row">
+            <label class="setting-label">Sortear Automáticamente a los Pendientes</label>
+            <div class="setting-hint">
+              Si al final del día falta alguien por entrar, pulsa este botón para sortear al azar los colores y cupos restantes a todos los que falten, completando la tabla para la imagen final de Teams.
+            </div>
+            <button id="btnAutoAssignPending" class="btn-primary-gold" style="width: 100%; justify-content: center; padding: 0.85rem;">
+              <span>🎲</span>
+              <span>Sortear Automáticamente a Todos los que Falten</span>
+            </button>
+          </div>
+
+          <div class="setting-row" style="margin-top: 1.5rem; border-top: 1px solid var(--border-glass); padding-top: 1.25rem;">
+            <label class="setting-label">Enlace Oficial para Compartir en Teams</label>
+            <div class="setting-hint">Copia este link y envíalo al grupo de Teams para que cada uno descubra su color y grupo en tiempo real.</div>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="text" id="shareLinkInput" class="setting-input" readonly>
+              <button id="btnCopyModalLink" class="btn-primary-gold" style="white-space: nowrap;">📋 Copiar</button>
+            </div>
+          </div>
+
+          <div class="setting-row" style="margin-top: 1.5rem; border-top: 1px solid var(--border-glass); padding-top: 1.25rem;">
+            <label class="setting-label" style="color: #f87171;">Reiniciar Sorteo desde Cero</label>
+            <div class="setting-hint">
+              Borra las asignaciones de todos y deja únicamente a <strong>Jazmin (Rojo)</strong> y <strong>Ruth (Transparente)</strong> listas para empezar un nuevo sorteo.
+            </div>
+            <button id="btnResetDrawFromZero" class="btn-secondary" style="color: #f87171; border-color: rgba(248, 113, 113, 0.4);">
+              <span>🗑️</span>
+              <span>Reiniciar Sorteo desde Cero</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab 2: Participants & Color Locks -->
+        <div id="tabParticipants" class="modal-tab-content">
+          <p class="setting-hint" style="margin-bottom: 1rem;">
+            Lista de participantes. Recuerda que <strong>Jazmin</strong> está bloqueada en <strong>Rojo</strong> y <strong>Ruth</strong> en <strong>Transparente</strong>.
+          </p>
+          <div id="participantsEditorList" class="participants-editor-list custom-scrollbar">
+            <!-- Dynamically populated rows with name input and color lock select -->
+          </div>
+        </div>
+
+        <!-- Tab 3: Colors Palette -->
+        <div id="tabColors" class="modal-tab-content">
+          <p class="setting-hint" style="margin-bottom: 1rem;">
+            Los 19 colores oficiales del sorteo para asegurar que cada participante tenga un color único.
+          </p>
+          <div id="colorsPaletteList" class="participants-editor-list custom-scrollbar">
+            <!-- Dynamically populated colors -->
+          </div>
+        </div>
+
+        <!-- Tab 4: Cloud Sync & Backup -->
+        <div id="tabSync" class="modal-tab-content">
+          <div class="setting-row">
+            <label class="setting-label">Sincronización en la Nube y Respaldo</label>
+            <div class="setting-hint">
+              Exporta una copia de seguridad del sorteo actual o importa un archivo JSON para sincronizar de inmediato todos los datos en cualquier dispositivo.
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+              <button id="btnExportStateJson" class="btn-primary-gold" style="flex: 1; justify-content: center;">💾 Exportar JSON</button>
+              <button id="btnImportStatePrompt" class="btn-secondary" style="flex: 1; justify-content: center;">📥 Importar JSON</button>
+            </div>
+          </div>
+          <div class="setting-row" style="margin-top: 1.25rem; border-top: 1px solid var(--border-glass); padding-top: 1rem;">
+            <label class="setting-label">Transmisión en Vivo Multi-Pestaña</label>
+            <div class="setting-hint">
+              Fuerza la emisión de una señal de sincronización para todas las pestañas y genera el enlace actualizado.
+            </div>
+            <button id="btnForceBroadcastSync" class="btn-tool-accent" style="width: 100%; justify-content: center; margin-top: 0.5rem; padding: 0.75rem;">
+              <span>🔄</span>
+              <span>Sincronizar y Transmitir Ahora</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btnCloseModalFooter" class="btn-secondary">Cerrar</button>
+        <button id="btnSaveOrganizerChanges" class="btn-primary-gold">💾 Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL: TÓMBOLA NAVIDEÑA (RULETA EMOCIONANTE DE COLOR Y GRUPO)
+       ==================================================================== -->
+  <div id="tombolaModal" class="modal-backdrop tombola-backdrop" aria-hidden="true" role="dialog" aria-modal="true" style="display: none;">
+    <div class="tombola-card" role="region" aria-live="assertive">
+      <div class="tombola-corner corner-tl">❄️</div>
+      <div class="tombola-corner corner-tr">⭐</div>
+      <div class="tombola-corner corner-bl">🎄</div>
+      <div class="tombola-corner corner-br">🎁</div>
+
+      <div class="tombola-header">
+        <span class="tombola-badge">🎰 SORTEO NAVIDEÑO EN TIEMPO REAL 🎄</span>
+        <h3 class="tombola-title">¡Girando la Tómbola Mágica!</h3>
+        <p class="tombola-subtitle">Asignando color y grupo a: <strong id="tombolaParticipantName">Compañero</strong></p>
+      </div>
+
+      <div class="tombola-avatar-section">
+        <div class="tombola-avatar-halo">
+          <img id="tombolaAvatarImg" class="tombola-avatar-img" src="" alt="Avatar">
+          <div class="tombola-santa-hat">🎅</div>
+          <div class="tombola-sparkle-star">✨</div>
+        </div>
+      </div>
+
+      <div class="tombola-reels-row">
+        <!-- Reel 1: Color -->
+        <div class="tombola-reel-box">
+          <div class="reel-caption">
+            <span>🎨</span>
+            <span>COLOR ÚNICO</span>
+          </div>
+          <div id="tombolaColorBox" class="reel-viewport">
+            <span id="tombolaColorDot" class="reel-color-circle"></span>
+            <span id="tombolaColorLabel" class="reel-text-main">Girando...</span>
+          </div>
+          <div id="tombolaColorSub" class="reel-subtext">Seleccionando azar...</div>
+        </div>
+
+        <!-- Reel 2: Grupo -->
+        <div class="tombola-reel-box">
+          <div class="reel-caption">
+            <span>👥</span>
+            <span>GRUPO OFICIAL</span>
+          </div>
+          <div id="tombolaGroupBox" class="reel-viewport">
+            <span id="tombolaGroupIcon" class="reel-group-emblem">⭐</span>
+            <span id="tombolaGroupLabel" class="reel-text-main">Girando...</span>
+          </div>
+          <div id="tombolaGroupSub" class="reel-subtext">Buscando cupo...</div>
+        </div>
+      </div>
+
+      <!-- Animated Progress Bar -->
+      <div class="tombola-progress-track">
+        <div id="tombolaProgressFill" class="tombola-progress-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- SCRIPTS (Cache-busting version v5 clean) -->
+  <script src="data.js?v=20261027_v5"></script>
+  <script src="app.js?v=20261027_v5"></script>
+</body>
+</html>
