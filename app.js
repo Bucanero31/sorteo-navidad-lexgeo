@@ -620,6 +620,13 @@
     localStorage.setItem(LS_SELECTED_USER, String(id));
     renderParticipantChips();
     updateActionButtonState();
+
+    // Only Henry (id: 6) or ?admin=1 can see the "Opciones de Henry" button!
+    const btnOrg = document.getElementById('btnOpenOrganizer');
+    if (btnOrg) {
+      const isUrlAdmin = new URLSearchParams(window.location.search).has('admin');
+      btnOrg.style.display = (id === 6 || isUrlAdmin) ? 'inline-flex' : 'none';
+    }
   }
 
   function updateActionButtonState() {
@@ -2361,6 +2368,9 @@
 
     if (state.selectedParticipantId) {
       selectParticipant(state.selectedParticipantId);
+    } else if (new URLSearchParams(window.location.search).has('admin')) {
+      const btnOrg = document.getElementById('btnOpenOrganizer');
+      if (btnOrg) btnOrg.style.display = 'inline-flex';
     }
 
     // Immediate Cloud Sync on boot + Live Polling every 4 seconds across all devices!
